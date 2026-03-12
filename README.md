@@ -24,7 +24,7 @@ The Dataset also includes some state-of-the-art Data Augmentation, such as Horiz
 
 The model also supports dividing and arranging Training Set into a Validation Set.
 
-During the process of working on the process, manual mathematical calculation has been done to ensure the correctness of the theoractical fundamental, and only then was the process of coding started.
+During the process of working on the project, manual mathematical calculation has been done to ensure the correctness of the theoractical fundamental, and only then was the process of coding started.
 
 The project is also composed of some utility stuff and a Python program to "plot" the result.
 
@@ -44,6 +44,7 @@ Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
 
 
 > **Note**: More details in the near future
+
 
 
 

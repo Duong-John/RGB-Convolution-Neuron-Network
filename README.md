@@ -1,5 +1,5 @@
 # Convolution Neural&nbsp;Network (NVIDIA GPU Implementation) for CIFAR-10 Dataset
-This is a small, simple, solo, and personal project, which I attempt to gain insight into some features of coding on GPU (NVIDIA GPU specifically) and try to reimplement the renowned Convolution Neural Network. The current version here is NOT optimized yet (in the Kernel aspect), so in the future, maybe it will be reviewed and upgraded when I acquire enough knowledge. The origin of this project is another project that I reimplemented the whole structure of the traditional Convolution Neuron Network using C++ Xtensor. About this latest version, it is just the transformation from CPU to GPU procedure.
+This is a small, simple, solo, and personal project, which I attempt to gain insight into some features of coding on GPU (NVIDIA GPU specifically) and try to reimplement the renowned Convolution Neural Network. The current version here is NOT optimized yet (in the Kernel aspect), so in the future, maybe it will be reviewed and upgraded when I acquire enough knowledge. The origin of this project is another project that I reimplemented the whole structure of the traditional Convolution Neuron Network using C++ Xtensor. This latest version is just the transformation from sequential execution to parallel calculation.
 
 ## Main Feature:
 The current version supports some layers:
@@ -32,5 +32,6 @@ This project endeavors to keep the data on the VRAM of the GPU as long as possib
 The model is only tested to be run on Window environment and Visual Studio Code specifically, so I can not use the common syntax such as ```addVectors&lt;&lt;&lt;blocksPerGrid, threadsPerBlock&gt;&gt;&gt;(d_a, d_b, d_c, n);```. Instead, the CPP acts as a Front-end and the CU acts as a Back-end. The CPP will have to use a Driver_Singleton to load a function in CU, and when it is call, I have to call the bult-in function ```CUresult res = cuLaunchKernel(k_conv_forward, grid.x, grid.y, grid.z, block.x, block.y, block.z, 0, 0,&nbsp; args, 0 );```
 
 Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
+
 
 > **Note**: More details in the near future

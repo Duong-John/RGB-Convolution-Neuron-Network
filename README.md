@@ -14,6 +14,10 @@ The model is evaluated by a metric designed in Loss.
 
 When starting, the program automatically creates and shuffles the Dataset from the folder /Dataset (CIFAR-10) with 10 classes. The dataset contains 60.000 images, of which 50.000 are training images and the rest are testing images.
 
+Weights and Biases are stored in binary files in the folder /Checkpoints, and they are automatically saved and written into the files every time the latest Validation Loss is improved.
+
+A limit of 20 is set so that if 20 epochs have passed since the last Weights and Biases file saving, the Model is stopped to prevent power consumption and potential overfitting.
+
 The Dataset also includes some state-of-the-art Data Augmentation, such as Horizontal Flip, Pixel Shift, or blackening an area.
 
 The model also supports dividing and arranging Training Set into a Validation Set.
@@ -35,3 +39,4 @@ Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
 
 
 > **Note**: More details in the near future
+

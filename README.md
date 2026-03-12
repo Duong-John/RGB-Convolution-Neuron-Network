@@ -37,8 +37,12 @@ The model is only tested to be run on Window environment and Visual Studio Code 
 
 Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
 
+## Result:
+![The graph of Loss, Accuracy and Runtime](report/Figure1.png)
+
 
 > **Note**: More details in the near future
+
 
 
 

@@ -2,7 +2,9 @@
 #define LAYER_HPP
 
 
-#include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda_runtime.h"
+// #include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda_runtime.h"
+#include <cuda_runtime.h>   //Error squiggles may occur but it's because the code editor find the 
+                            //path of CUDA_PATH in the environment or it does understand .cu library in .cpp file
 #include "Optimizer.hpp"
 
 class Layer {

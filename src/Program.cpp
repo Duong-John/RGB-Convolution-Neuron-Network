@@ -1,11 +1,11 @@
 #include "Program.hpp"
 #undef main
-// #define READY
-// #define RUN
+#define READY
+#define RUN
 // #define INIT
 // #define TRAIN
-// #define TEST
-#define RECORD
+#define TEST
+// #define RECORD
 int main()
 {
 #ifdef READY

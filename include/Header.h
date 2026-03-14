@@ -10,8 +10,14 @@
 #include <mutex>
 #include <filesystem>
 #include <stdexcept>
-#include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda_runtime.h"
-#include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda.h"
+
+#include <cuda_runtime.h>
+#include <cuda.h>
+//Error squiggles may occur but it's because the code editor find the 
+//path of CUDA_PATH in the environment or it does understand .cu library in .cpp file
+
+// #include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda_runtime.h"
+// #include "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/include/cuda.h"
 
 #include "../SDL/include/SDL.h"
 #include "../SDL/include/SDL_image.h"

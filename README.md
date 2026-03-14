@@ -40,6 +40,7 @@ The model is only tested to be run on Window environment and Visual Studio Code 
 Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
 
 ## Demo:
+Press the video below to see how to run the project.
 [![Test Video](report/Screen.png)](https://youtu.be/qIfoXoPS5Pk?si=FiXC_C_kWZkik296)
 
 ## Result:

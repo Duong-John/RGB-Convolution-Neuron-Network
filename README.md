@@ -54,8 +54,6 @@ Press the video below to see how to run the project.
     make clean
   ```
 
-[![Test Video](report/Screen.png)](https://youtu.be/qIfoXoPS5Pk?si=FiXC_C_kWZkik296)
-
 ## Result:
 ![The graph of Loss, Accuracy and Runtime](report/Figure_1.png)
 ![Run-time GPU Usage](report/GPUreport.png)

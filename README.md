@@ -1,4 +1,4 @@
-# Convolution Neural&nbsp;Network (NVIDIA GPU Implementation) for CIFAR-10 Dataset
+# Convolution Neural&nbsp;Network (NVIDIA GPU Implementation) on Windows for CIFAR-10 Dataset
 This is a small, simple, solo, and personal project, which I attempt to gain insight into some features of coding on a GPU (NVIDIA GPU specifically) and try to reimplement the renowned Convolution Neural Network. The current version here is NOT optimized yet (in the Kernel aspect), so in the future, maybe it will be reviewed and upgraded when I acquire enough knowledge. The origin of this project is another project that I reimplemented the whole structure of the traditional Convolution Neuron Network using C++ Xtensor. This latest version is just the transformation from sequential execution to parallel calculation.
 
 ## Main Feature:

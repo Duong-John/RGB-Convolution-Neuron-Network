@@ -39,8 +39,15 @@ The model is only tested to be run on Window environment and Visual Studio Code 
 
 Ensure deallocation in VRAM after the Model terminated to prevent memory leak.
 
+## Demo:
+Press the video below to see how to run the project.
+> **Note**: This video was recorded by Clipchamp, which was using some GPU resources at the time of recording, so the program executed more slowly than normal.
+
+[![Test Video](report/Screen.png)](https://youtu.be/qIfoXoPS5Pk?si=FiXC_C_kWZkik296)
+
 ## Result:
 ![The graph of Loss, Accuracy and Runtime](report/Figure_1.png)
+![Run-time GPU Usage](report/GPUreport.png)
 
 
 > **Note**: More details in the near future

@@ -6,7 +6,7 @@ This is a small, simple, solo, and personal project, which I attempt to gain ins
 * **Dataset link**: https://www.kaggle.com/c/cifar-10
 - When starting, the program automatically creates and shuffles the Dataset from the folder /Dataset (CIFAR-10) with 10 classes. The dataset contains 60.000 images, of which 50.000 are training images and the rest are testing images.
 * **Checkpoints**: Weights and Biases are stored in binary files in the folder /Checkpoints, and they are automatically saved and written into the files every time the latest Validation Loss is improved.
-* **Early Stopping**:A limit of 20 is set so that if 20 epochs have passed since the last Weights and Biases file saving, the Model is stopped to prevent power consumption and potential overfitting. This is based on the Loss of the Validation test occurring in every epoch after the training process.
+* **Early Stopping**: A limit of 20 is set so that if 20 epochs have passed since the last Weights and Biases file saving, the Model is stopped to prevent power consumption and potential overfitting. This is based on the Loss of the Validation test occurring in every epoch after the training process.
 * **Data Augmentation**: The Dataset also includes some state-of-the-art Data Augmentation, such as Horizontal Flip, Pixel Shift, or blackening an area.
 * **Mathematical basis**: During the process of working on the project, manual mathematical calculation has been done to ensure the correctness of the theoractical fundamental, and only then was the process of coding started.
 * **Visualization**: The project is also composed of some utility stuff and a Python program to "plot" the result and the visualization of every kernel included in each convolution layer.

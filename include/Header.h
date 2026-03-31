@@ -13,6 +13,7 @@
 
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <cublas_v2.h>
 //Error squiggles may occur but it's because the code editor find the 
 //path of CUDA_PATH in the environment or it does understand .cu library in .cpp file
 

@@ -1,4 +1,6 @@
 #include "Model.hpp"
+#include "Visual.hpp"
+#include "Convolution.hpp"
 #include <chrono>
 
 // Model::Model(const std::string& dataset_path, int batch_size, int num_classes, float learning_rate)
@@ -58,6 +60,8 @@ void Model::train(int epochs)
 {
     if (loss_layer == nullptr) throw std::runtime_error("Loss layer is not set!");
 
+    
+
     Dataset dataset(dataset_path, true, 0.2f); 
     int train_size = dataset.get_train_size();
     int val_size = dataset.get_val_size();
@@ -97,6 +101,8 @@ void Model::train(int epochs)
 
         for(int i = 0; i < train_size; i += batch_size)
         {
+            auto start_batch = std::chrono::high_resolution_clock::now();
+
             auto X_batch = dataset.get_batch(i, batch_size, false);
             size_t last_batch = X_batch.first.shape()[0];
 
@@ -108,15 +114,20 @@ void Model::train(int epochs)
                 cudaMalloc(&d_input_buffer, current_bytes);
                 buffer_size = current_bytes;
             }
+
             cudaMemcpy(d_input_buffer, X_batch.first.data(), current_bytes, cudaMemcpyHostToDevice);
 
             float* output = d_input_buffer;
 
-            for (Layer* layer : pipeline) output = layer->forward(output, last_batch);
-            
+            for (Layer* layer : pipeline)
+            {
 
-            cudaMemcpy(h_output, output, last_batch * num_classes * sizeof(float), cudaMemcpyDeviceToHost);
+                output = layer->forward(output, last_batch);
+
+            } 
             
+            cudaMemcpy(h_output, output, last_batch * num_classes * sizeof(float), cudaMemcpyDeviceToHost);
+
             for(size_t b = 0; b < last_batch; ++b) 
             {
                 int best_class = 0;
@@ -137,14 +148,18 @@ void Model::train(int epochs)
             }
             total_train_samples += last_batch;
 
-
+            //Loss
             output = loss_layer->forward(output, X_batch.second);
             train_loss_sum += loss_layer->get_loss();
-
             output = loss_layer->backward();
-            for (int j = pipeline.size() - 1; j >= 0; --j) output = pipeline[j]->backward(output);
+
+            for (int j = pipeline.size() - 1; j >= 0; --j)
+            {
+                output = pipeline[j]->backward(output);
+            } 
 
             int stream_idx = 0;
+
             for (Layer* layer : pipeline) 
             {
                 layer->update_params(*(this->optimizer), streams[stream_idx], streams[stream_idx + 1]);
@@ -153,6 +168,7 @@ void Model::train(int epochs)
 
             cuCtxSynchronize(); 
 
+            auto end_batch = std::chrono::high_resolution_clock::now();
 
             float progress = (float)(i + batch_size) / train_size * 100.0f;
             if (progress > 100.0f) progress = 100.0f;
@@ -160,7 +176,9 @@ void Model::train(int epochs)
 
             std::cout << "\r\033[K\033[1;33m[Epoch " << epoch + 1 << "/" << epochs << "] "
                       << "Train Progress: " << std::fixed << std::setprecision(1) << progress << "% | "
-                      << "Acc: " << current_acc << "%\033[0m" << std::flush;
+                      << "Acc: " << current_acc <<"% | Runtime: "<<std::chrono::duration_cast<std::chrono::milliseconds>(end_batch - start_batch).count()<<" ms\033[0m" <<std::flush;
+            
+            // std::cout<<history_run_time<<std::flush;
         }
 
         float val_loss_sum = 0.0f;
@@ -229,13 +247,14 @@ void Model::train(int epochs)
         float final_val_acc = (total_val_samples > 0) ? ((float)val_correct / total_val_samples * 100.0f) : 0.0f;
 
 
+
         std::cout << "\r\033[K\033[1;32m[Epoch " << epoch + 1 << "/" << epochs << "] "
                   << "T-Loss: " << std::fixed << std::setprecision(4) << final_train_loss << " | "
                   << "T-Acc: " << std::setprecision(2) << final_train_acc << "% || "
                   << "V-Loss: " << std::setprecision(4) << final_val_loss << " | "
                   << "V-Acc: " << std::setprecision(2) << final_val_acc << "% | "
                   << "Time: " << elapsed_ms << " ms\033[0m";
-
+        
         if (final_val_loss < best_val_loss) 
         {
             best_val_loss = final_val_loss;
@@ -267,7 +286,7 @@ void Model::test(const std::string& test_path)
     if (loss_layer == nullptr) throw std::runtime_error("Loss layer is not set!");
 
     Dataset test_dataset(test_path, false); 
-    
+    // int batch_size = 1;
     int test_size = test_dataset.get_train_size(); 
 
     if (test_size == 0) 
@@ -374,4 +393,148 @@ void Model::save_model()
         layer->save_weight_bias();
     }
     std::cout << "[Model] All model checkpoints saved successfully!" << std::endl;
+}
+
+void Model::predict(const std::string &img_path, bool visualize)
+{
+    Dataset dataset(this->dataset_path, false);
+
+    for (Layer* layer : pipeline)
+    {
+        layer->load_weight_bias();
+        layer->is_training = false;
+    } 
+
+    SDL_Surface* surface = IMG_Load(img_path.c_str());
+    if (!surface) 
+    {
+        std::cerr << "\n\033[1;31m[Predict] Error loading image: " << IMG_GetError() << "\033[0m\n";
+        return;
+    }
+
+    SDL_Surface* fmt_surface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBX8888, 0);
+    SDL_FreeSurface(surface);
+
+    int W = fmt_surface->w;
+    int H = fmt_surface->h;
+    int C = 3;
+    size_t image_size = C * W * H;
+    size_t area = W * H;
+
+    float* h_input = new float[image_size];
+    std::fill(h_input, h_input + image_size, 0.0f);
+
+    Uint32* pixels = (Uint32*)fmt_surface->pixels;
+
+    for(int h = 0; h < H; ++h)
+    {
+        for(int w = 0; w < W; ++w)
+        {
+            Uint32 pixel = pixels[h * fmt_surface->w + w];
+            Uint8 r, g, b, a;
+            SDL_GetRGBA(pixel, fmt_surface->format, &r, &g, &b, &a);
+
+            h_input[0 * area + h * W + w] = static_cast<float>(r) / 255.0f;
+            h_input[1 * area + h * W + w] = static_cast<float>(g) / 255.0f;
+            h_input[2 * area + h * W + w] = static_cast<float>(b) / 255.0f;
+        }
+    }
+    SDL_FreeSurface(fmt_surface);
+
+    size_t current_bytes = image_size * sizeof(float);
+    if (buffer_size < current_bytes) 
+    {
+        if (d_input_buffer) cudaFree(d_input_buffer);
+        cudaMalloc(&d_input_buffer, current_bytes);
+        buffer_size = current_bytes;
+    }
+    cudaMemcpy(d_input_buffer, h_input, current_bytes, cudaMemcpyHostToDevice);
+
+    // auto start = std::chrono::high_resolution_clock::now();
+    
+    // float* output = d_input_buffer;
+    // for (Layer* layer : pipeline) 
+    // {
+    //     output = layer->forward(output, 1);
+    // }
+    // cuCtxSynchronize();
+
+    // auto end = std::chrono::high_resolution_clock::now();
+    // int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    // Visual --------------------------------------------
+    Visual* visualizer = nullptr;
+    if (visualize) {
+        visualizer = new Visual(1200, 800);
+    }
+
+    float* output = d_input_buffer;
+    int layer_idx = 1;
+
+    for (Layer* layer : pipeline) 
+    {
+       
+        output = layer->forward(output, 1);
+        cuCtxSynchronize();
+
+      
+        if (visualize) 
+        {
+            Convolution* conv_layer = dynamic_cast<Convolution*>(layer);
+            if (conv_layer != nullptr) 
+            {
+          
+                int c_out = conv_layer->get_C_out();
+                int h_out = conv_layer->get_H_out();
+                int w_out = conv_layer->get_W_out();
+                size_t num_elements = c_out * h_out * w_out;
+
+             
+                float* h_feature_maps = new float[num_elements];
+                cudaMemcpy(h_feature_maps, output, num_elements * sizeof(float), cudaMemcpyDeviceToHost);
+
+            
+                std::string name = "Conv_Layer_" + std::to_string(layer_idx);
+                visualizer->draw_feature_maps(h_feature_maps, c_out, h_out, w_out, name);
+                visualizer->wait_for_close(); 
+
+                delete[] h_feature_maps; 
+            }
+        }
+        layer_idx++;
+    }
+
+    if (visualize) {
+        delete visualizer;
+    }
+    // Visual --------------------------------------------
+
+    float* h_output = new float[num_classes];
+    cudaMemcpy(h_output, output, num_classes * sizeof(float), cudaMemcpyDeviceToHost);
+
+    int best_class = 0;
+    float max_logit = h_output[0];
+
+    for(int c = 1; c < num_classes; ++c) 
+    {
+        if(h_output[c] > max_logit) 
+        {
+            max_logit = h_output[c];
+            best_class = c;
+        }
+    }
+
+    std::string predicted_label = dataset.get_class_name(best_class);
+
+    std::cout << "\n========================================";
+    std::cout << "\n\033[1;36m       AI PREDICTION RESULT\033[0m";
+    std::cout << "\n========================================\n";
+    std::cout << "Image Path : " << img_path << "\n";
+    std::cout << "Class ID   : " << best_class << "\n";
+    std::cout << "Label Name : \033[1;32m" << predicted_label << "\033[0m\n";
+    // std::cout << "Inf. Time  : " << elapsed_ms << " ms\n";
+    std::cout << "========================================\n\n";
+
+    delete[] h_input;
+    delete[] h_output;
 }

@@ -1,5 +1,7 @@
 #include "Linear.hpp"
 #include "Drive_Singleton.hpp"
+#define CUBLAS
+// #define CUSTOM_LIN
 
 Linear::Linear(int batch_size, int flat_size, int neuron_num, const std::string &file_name) : Layer()
 {
@@ -11,10 +13,17 @@ Linear::Linear(int batch_size, int flat_size, int neuron_num, const std::string 
     this->bias_size = neuron_num;
 
     CUmodule mo = Driver_Singleton::getInstance()->getModule();
+#ifndef CUBLAS
     CUresult res1 = cuModuleGetFunction(&k_linear_forward, mo, "linear_forward_kernel");
+#endif
     CUresult res2 = cuModuleGetFunction(&k_linear_bias_backward, mo, "linear_bias_backward_kernel");
     CUresult res3 = cuModuleGetFunction(&k_linear_weight_backward, mo, "linear_weight_backward_kernel");
     CUresult res4 = cuModuleGetFunction(&k_linear_input_backward, mo, "linear_input_backward_kernel");
+
+#ifdef CUBLAS
+    cublasCreate(&cublas_handle);
+    CUresult res1 = cuModuleGetFunction(&k_linear_forward, mo, "linear_forward_kernel_cuBLAS");
+#endif
 
     if(res1 != CUDA_SUCCESS)
     {
@@ -77,6 +86,9 @@ Linear::~Linear()
         cudaFree(d_cache_con);
         d_cache_con = nullptr;
     }
+#ifdef CUBLAS
+    cublasDestroy(cublas_handle);
+#endif
 }
 
 void Linear::update_params(Optimizer &optimizer, CUstream stream_W, CUstream stream_B)
@@ -87,12 +99,13 @@ void Linear::update_params(Optimizer &optimizer, CUstream stream_W, CUstream str
 
 float *Linear::forward(float *d_input, int batch_size)
 {
+
     this->batch_size = batch_size;
     if (d_input == nullptr) {
         throw std::runtime_error("[Linear] Linear's input requires the precede module's output memory");
     }
     this->d_input = d_input;
-
+#ifndef CUBLAS
     int BLOCK_SIZE = 16;
     dim3 block(BLOCK_SIZE, BLOCK_SIZE, 1);
     dim3 grid(
@@ -125,17 +138,58 @@ float *Linear::forward(float *d_input, int batch_size)
     // cuCtxSynchronize();
 
     return d_output;
+#endif
+
+#ifdef CUBLAS
+    this->batch_size = batch_size;
+    this->d_input = d_input;
+
+    float alpha = 1.0f;
+    float beta = 0.0f;
+
+    // // cuBLAS: Y = X * W
+    // // Column-majormajor, so Y = X * W <=> Y^T = W^T * X^T
+    // cublasSgemm(cublas_handle, 
+    //             CUBLAS_OP_N, CUBLAS_OP_N, 
+    //             neuron_num, batch_size, flat_size, 
+    //             &alpha, 
+    //             d_weight, neuron_num,  // W^T
+    //             d_input, flat_size,    // X^T
+    //             &beta, 
+    //             d_output, neuron_num); // Y^T
+
+    cublasSgemm(cublas_handle, 
+                CUBLAS_OP_N, CUBLAS_OP_N, 
+                neuron_num, batch_size, flat_size, 
+                &alpha, 
+                weight, neuron_num,    // W^T
+                d_input, flat_size,    // X^T
+                &beta, 
+                d_output, neuron_num); // Y^T
+
+    // Add Bias with custom kernel
+    int BLOCK_SIZE = 16;
+    dim3 block(BLOCK_SIZE, BLOCK_SIZE, 1);
+    dim3 grid((neuron_num + BLOCK_SIZE - 1) / BLOCK_SIZE, (batch_size + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+    void* args[] = { &d_output, &bias, &this->batch_size, &neuron_num };
+
+    cuLaunchKernel(k_linear_forward, grid.x, grid.y, grid.z, block.x, block.y, block.z, 0, 0, args, 0);
+
+    return d_output;
+#endif
 }
 
 float *Linear::backward(float *d_cache)
 {
+
     if (d_cache == nullptr) {
         throw std::runtime_error("[Linear] Linear's input requires the precede module's output memory");
     }
     if (d_input == nullptr) {
         throw std::runtime_error("[Linear] Linear's input requires the precede module's output memory");
     }
-
+#ifndef CUBLAS
     // 1. Calculate Bias:
     int NUM_BATCH_ROUND = 64;
     dim3 block_bias(NUM_BATCH_ROUND, 1, 1); 
@@ -220,7 +274,54 @@ float *Linear::backward(float *d_cache)
     }
     // cuCtxSynchronize();
     return this->d_cache_con;
+#endif
 
+#ifdef CUBLAS
+    float alpha = 1.0f;
+    float beta = 0.0f;
+
+    // Calculate Bias 
+    int NUM_BATCH_ROUND = 64;
+
+    dim3 block_bias(NUM_BATCH_ROUND, 1, 1); 
+    dim3 grid_bias(this->neuron_num, 1, 1);
+
+    void* args1[] = { &d_cache, &d_bias, &batch_size, &neuron_num };
+    cuLaunchKernel(k_linear_bias_backward, grid_bias.x, grid_bias.y, grid_bias.z, block_bias.x, block_bias.y, block_bias.z, 0, 0, args1, 0);
+
+    // dW = X^T * dZ
+    // <=> cuBLAS dW^T = dZ^T * X
+    cublasSgemm(cublas_handle, 
+                CUBLAS_OP_N, CUBLAS_OP_T, // cuBLAS read matrix as matrix^T
+                neuron_num, flat_size, batch_size, 
+                &alpha, 
+                d_cache, neuron_num, 
+                d_input, flat_size, 
+                &beta, 
+                d_weight, neuron_num);
+
+    // D_X: dX = dZ * W^T
+    // <=> cuBLAS dX^T = W * dZ^T
+    // cublasSgemm(cublas_handle, 
+    //             CUBLAS_OP_T, CUBLAS_OP_N, // cuBLAS read matrix as matrix^T
+    //             flat_size, batch_size, neuron_num, 
+    //             &alpha, 
+    //             d_weight, neuron_num, 
+    //             d_cache, neuron_num, 
+    //             &beta, 
+    //             d_cache_con, flat_size);
+    
+    cublasSgemm(cublas_handle, 
+                CUBLAS_OP_T, CUBLAS_OP_N, 
+                flat_size, batch_size, neuron_num, 
+                &alpha, 
+                weight, neuron_num, 
+                d_cache, neuron_num, 
+                &beta, 
+                d_cache_con, flat_size);
+
+    return this->d_cache_con;
+#endif
 }
 
 void Linear::load_weight_bias()

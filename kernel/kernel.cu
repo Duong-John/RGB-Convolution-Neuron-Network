@@ -372,6 +372,7 @@ __global__ void max_pooling_forward_kernel_2D(
     }
 }
 
+// Non-cuBlas version
 extern "C"
 __global__ void linear_forward_kernel(
     const float* __restrict__ X,    // Input [Batch, Flat_Size]
@@ -401,6 +402,25 @@ __global__ void linear_forward_kernel(
         }
 
         Y[row * neuron_num + col] = acc + B[col];
+    }
+}
+
+// cuBlas version
+extern "C"
+__global__ void linear_forward_kernel_cuBLAS(
+    float* __restrict__ Y,          // Output from cuBLAS [Batch, Neuron_Num]
+    const float* __restrict__ B,    // Bias [Neuron_Num]
+    int batch_size,
+    int neuron_num
+)
+{
+    int col = blockIdx.x * blockDim.x + threadIdx.x; 
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (row < batch_size && col < neuron_num)
+    {
+        // Only add bias
+        Y[row * neuron_num + col] += B[col];
     }
 }
 
@@ -845,6 +865,8 @@ __global__ void conv_weight_backward_naive(
     }
 }
 
+
+
 // Not optimized yet
 extern "C"
 __global__ void conv_bias_backward_naive(
@@ -876,6 +898,54 @@ __global__ void conv_bias_backward_naive(
         }
 
         dB[c] = sum;
+    }
+}
+
+#define REDUCE_BLOCK_SIZE 256
+
+// Improved version
+extern "C"
+__global__ void conv_bias_backward_shared(
+    const float* __restrict__ dZ,  // Gradient: [N, C_out, H_out, W_out]
+    float* __restrict__ dB,        // Output: [C_out]
+    int N, int C_out, int H_out, int W_out
+)
+{
+    // 1 block <-> 1 channel C_out
+    int c = blockIdx.x;
+    if (c >= C_out) return;
+
+    __shared__ float s_sum[REDUCE_BLOCK_SIZE];
+    int tid = threadIdx.x;
+    float sum = 0.0f;
+
+    int total_elements = N * H_out * W_out;
+    int offset = c * (H_out * W_out);
+
+    // Grid-stride loop: Clustering pixel and add to Registers
+    for (int i = tid; i < total_elements; i += blockDim.x) 
+    {
+        int n = i / (H_out * W_out);
+        int hw = i % (H_out * W_out);
+        int dz_idx = n * (C_out * H_out * W_out) + offset + hw;
+        sum += dZ[dz_idx];
+    }
+
+    s_sum[tid] = sum;
+    __syncthreads();
+
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) 
+    {
+        if (tid < stride) 
+        {
+            s_sum[tid] += s_sum[tid + stride];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) 
+    {
+        dB[c] = s_sum[0];
     }
 }
 

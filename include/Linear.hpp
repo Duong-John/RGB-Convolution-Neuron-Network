@@ -22,6 +22,7 @@ class Linear : public Layer
         CUfunction k_linear_bias_backward;
         CUfunction k_linear_weight_backward;
         CUfunction k_linear_input_backward;
+        cublasHandle_t cublas_handle;
         
         
     

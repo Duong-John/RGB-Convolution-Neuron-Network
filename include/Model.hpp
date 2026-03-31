@@ -37,6 +37,8 @@ class Model
         void train(int epochs);
         void test(const std::string& test_path);
         void save_model();
+        void predict(const std::string& img_path, bool visualize = false);
+        
 };
 
 #endif

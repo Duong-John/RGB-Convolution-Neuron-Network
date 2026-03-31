@@ -5,6 +5,7 @@
 // #define INIT
 // #define TRAIN
 #define TEST
+// #define PREDICT
 // #define RECORD
 int main()
 {
@@ -97,7 +98,7 @@ int main()
 #ifdef RUN
     //In kernel.cu, it only support number of class <= 32
     //Model(const std::string& dataset_path, int batch_size, int num_classes, float learning_rate, OptimizerType opt_type, float momentum = 0.9f, float weight_decay = 0.0001f);
-    Model my_model("Dataset/Dataset_10/train", batch_size, 10, 0.001f, OptimizerType::ADAM, 0.9f, 0.0001f);
+    Model my_model("Dataset/Dataset_10/train", batch_size, 10, 0.000016f, OptimizerType::ADAM, 0.9f, 0.0001f);
     
 
     // Best use -----------------------------------------------------------
@@ -143,6 +144,15 @@ int main()
 #ifdef TEST
     std::cout << "\n--- STARTING EVALUATION ON TEST SET ---\n";
     my_model.test("Dataset/Dataset_10/test");
+#endif
+
+#ifdef PREDICT
+    std::cout << "\n--- STARTING PREDICTING ON TEST SET ---\n";
+    string input_file;
+    std::cout << "Your file: ";
+    std::cin>>input_file;
+    std::cout<<"\n";
+    my_model.predict(input_file, true);
 #endif
 
 #ifdef RECORD

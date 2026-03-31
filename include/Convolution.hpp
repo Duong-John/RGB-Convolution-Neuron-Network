@@ -31,6 +31,10 @@ class Convolution : public Layer
         void load_weight_bias();
         void save_weight_bias();
 
+        int get_C_out() const { return C_out; }
+        int get_H_out() const { return H_out; }
+        int get_W_out() const { return W_out; }
+
     private:
 
         void upload_params_to_gpu(const std::vector<float>& h_weights, const std::vector<float>& h_bias);

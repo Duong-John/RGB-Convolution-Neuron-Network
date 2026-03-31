@@ -30,6 +30,14 @@ public:
     void shuffle();
 
     std::pair<xt::xarray<float>, xt::xarray<int>> get_batch(size_t start_index, size_t batch_size, bool is_val = false);
+    std::string get_class_name(int index) const 
+    {
+        if (index >= 0 && index < class_names.size()) 
+        {
+            return class_names[index];
+        }
+        return "Unknown";
+    }
     size_t get_train_size() const;
     size_t get_val_size() const;
 

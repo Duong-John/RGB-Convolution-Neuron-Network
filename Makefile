@@ -26,7 +26,7 @@ endif
 CUDA_DIR = $(subst \,/,$(CUDA_PATH))
 
 CXXFLAGS = -w -ISDL/include -Iinclude -Itensor -I"$(CUDA_DIR)/include" -std=c++20
-LDFLAGS  = -LSDL/lib1 -LSDL/lib2 -L"$(CUDA_DIR)/lib/x64" -lSDL2 -lSDL2_image -lcudart -lcuda
+LDFLAGS  = -LSDL/lib1 -LSDL/lib2 -L"$(CUDA_DIR)/lib/x64" -lSDL2 -lSDL2_image -lcudart -lcuda -lcublas
 
 NVCCFLAGS = -w -arch=sm_89 -ptx
 
@@ -35,7 +35,7 @@ BUILD_DIR = build
 
 SRCS = src/Dataset.cpp src/Convolution.cpp src/ReLU.cpp src/Max_Pooling.cpp \
        src/Utils.cpp src/Linear.cpp src/Softmax.cpp src/Loss.cpp \
-       src/Optimizer.cpp src/Layer.cpp src/Model.cpp src/Dropout.cpp src/Program.cpp \
+       src/Optimizer.cpp src/Layer.cpp src/Visual.cpp src/Model.cpp src/Dropout.cpp src/Program.cpp \
        src/Drive_Singleton.cpp
 
 OBJS = $(patsubst src/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))

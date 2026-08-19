@@ -1,3 +1,7 @@
+![Version](https://img.shields.io/badge/CUDA-CNN-blue.svg)
+![Status](https://img.shields.io/badge/Status-Done-brightgreen.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6.svg)
+
 # Convolution Neural&nbsp;Network (NVIDIA GPU Implementation) on Windows for CIFAR-10 Dataset
 This is a small, simple, solo, and personal project, which I attempt to gain insight into some features of coding on a GPU (NVIDIA GPU specifically), and try to reimplement the renowned Convolution Neural Network. The current version here is NOT optimized yet (in the Kernel aspect), so in the future, maybe it will be reviewed and upgraded when I acquire enough knowledge. The origin of this project is another project that I reimplemented the whole structure of the traditional Convolution Neuron Network using C++ Xtensor. This latest version is just the transformation from sequential execution to parallel calculation.
 > **GAMING LAPTOP VERSION**: This main branch presents the version that was built and tested on an NVIDIA GPU (RTX 4050 - 6GB VRAM) on my Laptop Gaming. CUDA Version: 12.9 with Intel Core i7.
